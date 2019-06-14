@@ -104,12 +104,17 @@ $public = explode('.', $rules[0]);
 $CGNAT_IP_INICIAL = $CGNAT_IP;
 $checkip = $CGNAT_IP_INICIAL;
 
+
 for($i=0;$i<$CGNAT_RULES;++$i){
 	
 	$output_rules[] = "add action=netmap chain=CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x} protocol=tcp src-address=".long2ip($CGNAT_IP)."/{$rules[1]} to-addresses={$CGNAT_START} to-ports={$ports_start}-{$ports_end}";
 	$output_rules[] = "add action=netmap chain=CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x} protocol=udp src-address=".long2ip($CGNAT_IP)."/{$rules[1]} to-addresses={$CGNAT_START} to-ports={$ports_start}-{$ports_end}";
 	$output_rules[] = "add action=netmap chain=CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x} src-address=".long2ip($CGNAT_IP)."/{$rules[1]} to-addresses={$CGNAT_START}";
 	$CGNAT_IP += $subnet_rev[$rules[1]];
+
+	if($i==$CGNAT_RULES-1 && $x == 1){
+		$output_jumps[] = "add chain=srcnat src-address=".long2ip($CGNAT_IP_INICIAL)."-".long2ip($CGNAT_IP-1)." action=jump jump-target=\"CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x}\"";
+	}
 	
 	$check = $CGNAT_IP - $CGNAT_IP_INICIAL;
 	if($check>255) {

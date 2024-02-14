@@ -96,17 +96,30 @@ if(isset($options['m'])) {
 }
 
 $rules = explode('/', $CGNAT_START);
-$ports = ceil((65535-1024)/$CGNAT_RULES);
-$ports_start = 1025;
+$init_porta = 1025;
+$max_ports = 65535;
+$ports_start = $init_porta;
+$ports = ceil(($max_ports-$init_porta)/$CGNAT_RULES);
+
 $ports_end = $ports_start + $ports;
 
 $public = explode('.', $rules[0]);
+$cgnat = explode('.', long2ip($CGNAT_IP));
+
 $CGNAT_IP_INICIAL = $CGNAT_IP;
 $checkip = $CGNAT_IP_INICIAL;
 
-
+$ipp = $public[3];
+$cgipp = $cgnat[3];
 for($i=0;$i<$CGNAT_RULES;++$i){
-	
+
+    for($hh=0;$hh<$subnet_rev[$rules[1]];++$hh){
+        output( $CGNAT_OUTPUT, "-- IP: {$public[0]}.{$public[1]}.{$public[2]}.".$ipp." -> {$cgnat[0]}.{$cgnat[1]}.".($cgnat[2]-1+$x).".". (int)$cgipp." -> PORTAS: ".$ports_start." - ".$ports_end);
+        $cgipp += 1;
+        $ipp += 1;
+    }
+    $ipp = $public[3];
+
 	$output_rules[] = "add action=netmap chain=CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x} protocol=tcp src-address=".long2ip($CGNAT_IP)."/{$rules[1]} to-addresses={$CGNAT_START} to-ports={$ports_start}-{$ports_end}";
 	$output_rules[] = "add action=netmap chain=CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x} protocol=udp src-address=".long2ip($CGNAT_IP)."/{$rules[1]} to-addresses={$CGNAT_START} to-ports={$ports_start}-{$ports_end}";
 	$output_rules[] = "add action=netmap chain=CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x} src-address=".long2ip($CGNAT_IP)."/{$rules[1]} to-addresses={$CGNAT_START}";
@@ -120,18 +133,19 @@ for($i=0;$i<$CGNAT_RULES;++$i){
 	if($check>255) {
 		$output_jumps[] = "add chain=srcnat src-address=".long2ip($CGNAT_IP_INICIAL)."-".long2ip($CGNAT_IP-1)." action=jump jump-target=\"CGNAT_{$public[2]}_{$public[3]}-{$rules[1]}-{$x}\"";
 		$CGNAT_IP_INICIAL = $CGNAT_IP;
+        $cgipp = $cgnat[3];
 		++$x;
 	}
-	
+
 	$ports_start = $ports_end + 1;
-	if($ports_start >= 65535) {
-		$ports_start = 1025;
+	if($ports_start >= $max_ports) {
+		$ports_start = $init_porta;
 		$ports_end = $ports_start;
 	}
-	
-	$ports_end += $ports;
-	if($ports_end > 65535){
-		$ports_end = 65535;
+
+    $ports_end += $ports;
+	if($ports_end > $max_ports){
+		$ports_end = $max_ports;
 	}
 }
 
